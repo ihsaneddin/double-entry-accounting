@@ -1,0 +1,211 @@
+module Accounting
+  module BookKeeping
+    extend ActiveSupport::Concern
+
+    module ClassMethods
+
+      def insert_entry! entry_attributes: {}, entry_tenant: nil, entry_description: nil, entry_debits: [], entry_credits: [], entry_when: :after_commit, entry_depend_on: false, entry_async: ::Accounting.enable_asynchronous_balance_insertion, entry_worker: Accounting::TransactionWorker
+        unless include?(Helpers)
+          include Helpers
+        end
+        self.bookkeeping_options = {}
+        option = { attributes: entry_attributes, tenant: entry_tenant, description: entry_description, debits: entry_debits, credits: entry_credits, when: entry_when, depend_on: entry_depend_on, async: entry_async, worker: entry_worker}
+        self.bookkeeping_options = option
+        self.array_of_bookkeeping_options << option
+        #Array(option[:when]).flatten.compact.each do |callback|
+        send(:after_save, :insert_entry!) if array_of_bookkeeping_options.blank?
+        #end
+      end
+
+    end
+
+    module Helpers
+      extend ActiveSupport::Concern
+
+      included do
+        class_attribute :bookkeeping_options, :array_of_bookkeeping_options
+        self.bookkeeping_options = {}
+        self.array_of_bookkeeping_options = []
+        attr_accessor :current_bookkeeping_options
+      end
+
+      protected
+
+      def build_credit attrs = {}
+        ::Accounting::Amounts::Credit.new attrs
+      end
+
+      def build_debit attrs = {}
+        ::Accounting::Amounts::Debit.new attrs
+      end
+
+      def build_entry attrs = {}
+        ::Accounting::Amounts::Transaction.new attrs
+      end
+
+      def build_entry_attributes
+        _tenant = get_bookkeeping_option :tenant
+        _description = get_bookkeeping_option :description
+        _credits = get_bookkeeping_option :credits
+        _debits = get_bookkeeping_option :debits
+        attrs = { tenant: _tenant, description: _description }
+        _credits_obj = []
+        _credits = Array.new(_credits) unless _credits.is_a?(Array)
+        _credits = _credits.reject do |cr|
+          return case cr
+            when Hash
+              return true
+            when ::Accounting::Amounts::Credit
+              _credits_obj << cr
+              false
+            end
+        end
+        attrs[:credits] = _credits
+        _debits_obj = []
+        _debits = Array.new(_debits) unless _debits.is_a?(Array)
+        _debits = _debits.reject do |db|
+          return case db
+            when Hash
+              return true
+            when ::Accounting::Amounts::Debit
+              _debits_obj << db
+              false
+            end
+        end
+        attrs[:debits] = _debits
+        entry = build_entry attrs
+        _credits_obj.each do |cr|
+          entry.credits << cr
+        end
+        _debits_obj.each do |db|
+          entry.debits << db
+        end
+        entry
+      end
+
+      def insert_entry!
+        array_of_bookkeeping_options.each do |bookkeeping_options|
+          self.current_bookkeeping_options = bookkeeping_options
+          entry = get_bookkeeping_option :attributes
+          if entry.blank?
+            entry = build_entry_attributes
+          end
+          case entry
+          when Hash
+            entry = build_entry entry
+          when ::Accounting::Amounts::Transaction
+            entry
+          else
+            entry = nil
+          end
+          if get_bookkeeping_option :async
+            worker_class = get_bookkeeping_option :worker
+            if worker
+              attrs = { description: entry.description, tenant_id: entry.tenant.try(:id), credits: [], debits: [] }
+              entry.credits.each do |cr|
+                attrs[:credits] << { account_name: cr.account_name, account_type: cr.account_type, amount: cr.amount }
+              end
+              entry.debits.each do |db|
+                attrs[:debits] << { account_name: db.account_name, account_type: db.account_type, amount: db.amount }
+              end
+              worker.perform_async :action, attrs.to_json
+            else
+              entry.save
+            end
+          else
+            entry.save
+          end
+        end
+      end
+
+      def should_insert_entry?
+        get_bookkeeping_option :depend_on
+      end
+
+      def array_of_bookkeeping_options
+        self.class.array_of_bookkeeping_options
+      end
+
+      def get_bookkeeping_option key
+        options = self.current_bookkeeping_options || self.class.get_bookkeeping_option
+        opt = options.except(:when).dig key
+        case opt
+        when Proc
+          instance_exec(&opt)
+        when Symbol
+          send opt
+        else
+          opt
+        end
+      end
+
+      module ClassMethods
+
+        def entry_attributes attrs= nil, &block
+          if block_given?
+            set_bookkeeping_options[:attributes] = Proc.new
+          else
+            set_bookkeeping_options[:attributes] = attrs unless attrs.nil?
+          end
+          self.bookkeeping_options[:attributes]
+        end
+
+        def entry_tenant tenant= nil, &block
+          if block_given?
+            set_bookkeeping_options[:tenant] = Proc.new
+          else
+            set_bookkeeping_options[:tenant] = tenant
+          end
+          self.bookkeeping_options[:tenant]
+        end
+
+        def entry_description description= nil, &block
+          if block_given?
+            set_bookkeeping_options[:description] = Proc.new
+          else
+            set_bookkeeping_options[:description] = description
+          end
+          self.bookkeeping_options[:description]
+        end
+
+        def entry_debits debits= nil, &block
+          if block_given?
+            set_bookkeeping_options[:debits] = Proc.new
+          else
+            set_bookkeeping_options[:debits] = debits
+          end
+          self.bookkeeping_options[:debits]
+        end
+
+        def entry_credits credits= nil, &block
+          if block_given?
+            set_bookkeeping_options[:credits] = Proc.new
+          else
+            set_bookkeeping_options[:credits] = credits
+          end
+          self.bookkeeping_options[:credits]
+        end
+
+        def entry_depend_on on=false, &block
+          if block_given?
+            set_bookkeeping_options[:depend_on] = Proc.new
+          else
+            set_bookkeeping_options[:depend_on] = depend_on
+          end
+          self.bookkeeping_options[:depend_on]
+        end
+
+        def set_bookkeeping_options key, value
+          self.bookkeeping_options[key.to_sym] = value
+        end
+
+        def get_bookkeeping_option key
+          self.bookkeeping_options.except(:when).dig key.to_sym
+        end
+
+      end
+
+    end
+
+  end
+end

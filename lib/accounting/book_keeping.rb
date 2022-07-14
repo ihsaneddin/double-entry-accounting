@@ -4,7 +4,7 @@ module Accounting
 
     module ClassMethods
 
-      def insert_entry! entry_attributes: {}, entry_tenant: nil, entry_description: nil, entry_debits: [], entry_credits: [], entry_when: :after_commit, entry_depend_on: false, entry_async: ::Accounting.enable_asynchronous_balance_insertion, entry_worker: Accounting::TransactionWorker
+      def insert_entry! entry_attributes: {}, entry_tenant: nil, entry_description: nil, entry_debits: [], entry_credits: [], entry_when: :after_commit, entry_depend_on: false, entry_async: ::Accounting.enable_asynchronous_balance_insertion, entry_worker: Accounting::EntryWorker
         unless include?(Helpers)
           include Helpers
         end
@@ -40,7 +40,7 @@ module Accounting
       end
 
       def build_entry attrs = {}
-        ::Accounting::Amounts::Transaction.new attrs
+        ::Accounting::Amounts::Entry.new attrs
       end
 
       def build_entry_attributes
@@ -93,7 +93,7 @@ module Accounting
           case entry
           when Hash
             entry = build_entry entry
-          when ::Accounting::Amounts::Transaction
+          when ::Accounting::Amounts::Entry
             entry
           else
             entry = nil

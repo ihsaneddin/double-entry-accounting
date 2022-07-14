@@ -23,8 +23,8 @@ module Accounting
     yield(self)
   end
 
-  def transaction_entry tenant: nil, account_type: nil, attrs: {}
-    entry = Accounting::Transaction.new({tenant: tenant, account_type: account_type}.merge(attrs))
+  def entry tenant: nil, account_type: nil, attrs: {}
+    entry = Accounting::Entry.new({tenant: tenant, account_type: account_type}.merge(attrs))
     entry.save
     entry
   end

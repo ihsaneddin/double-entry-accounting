@@ -11,26 +11,26 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version
     add_index :accounting_accounts, [:name, :type]
     add_index :accounting_accounts, [:tenant_id]
 
-    create_table :accounting_transactions do |t|
+    create_table :accounting_entries do |t|
       t.string :description
       t.date :date
       t.references :document, polymorphic: true
       t.boolean :reconciliation, default: nil
       t.timestamps
     end
-    add_index :accounting_transactions, :date
-    add_index :accounting_transactions, [:document_id, :document_type], :name => "index_transactions_on_document"
+    add_index :accounting_entries, :date
+    add_index :accounting_entries, [:document_id, :document_type], :name => "index_entries_on_document"
 
      create_table :accounting_amounts do |t|
       t.string :type
       t.references :account
-      t.references :transaction
+      t.references :entry
       t.decimal :amount, :precision => 20, :scale => 10
       t.timestamps
     end
     add_index :accounting_amounts, :type
-    add_index :accounting_amounts, [:account_id, :transaction_id]
-    add_index :accounting_amounts, [:transaction_id, :account_id]
+    add_index :accounting_amounts, [:account_id, :entries_id]
+    add_index :accounting_amounts, [:entry_id, :account_id]
 
   end
 end

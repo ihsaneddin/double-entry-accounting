@@ -6,9 +6,9 @@ module Accounting
     has_many :amounts
     has_many :credit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::CreditAmount'
     has_many :debit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::DebitAmount'
-    has_many :entries, through: :amounts, source: :entry, :class_name => 'Accounting::Transaction'
-    has_many :credit_transactions, :through => :credit_amounts, :source => :entry, :class_name => 'Accounting::Transaction'
-    has_many :debit_transactions, :through => :debit_amounts, :source => :entry, :class_name => 'Accounting::Transaction'
+    has_many :entries, through: :amounts, source: :entry, :class_name => 'Accounting::Entry'
+    has_many :credit_entries, :through => :credit_amounts, :source => :entry, :class_name => 'Accounting::Entry'
+    has_many :debit_entries, :through => :debit_amounts, :source => :entry, :class_name => 'Accounting::Entry'
 
     if ::Accounting.enable_tenancy
       include ::Accounting::Concerns::Tenancy
@@ -17,6 +17,17 @@ module Accounting
     end
 
     validates_presence_of :type
+    validates :name, presence: true
+    validates :code, presence: true, uniqueness: { allow_blank: true }
+
+    before_validation do 
+      if name.blank?
+        self.name = self.code
+      end
+      if code.blank?
+        self.code = name + "#{Time.now.to_i}"
+      end
+    end
 
     def self.types
       [

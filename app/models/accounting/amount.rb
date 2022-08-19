@@ -1,12 +1,12 @@
 module Accounting
   class Amount < ApplicationRecord
 
-    belongs_to :entry, :class_name => 'Accounting::Transaction', foreign_key: :transaction_id
+    belongs_to :entry, :class_name => 'Accounting::Entry', foreign_key: :entry_id
     belongs_to :account, :class_name => 'Accounting::Account'
 
     validates_presence_of :type, :amount, :entry, :account
 
-    delegate :name, to: :account, prefix: true, allow_nil: true
+    delegate :name, :code, to: :account, prefix: true, allow_nil: true
 
     attr_accessor :account_type
 
@@ -17,6 +17,11 @@ module Accounting
       else
         self.account = get_account_type_class(account_type).find_by!(name: name, tenant: tenant)
       end
+    end
+
+    def account_code=(code)
+      tenant = entry.try :tenant
+      self.account = get_account_type_class(account_type).find_by!(code: code, tenant: tenant)
     end
 
     private

@@ -4,6 +4,8 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version
     create_table :accounting_accounts do |t|
       t.string :name
       t.string :type
+      t.string :code, unique: true, null: false
+      t.string :category
       t.boolean :contra, default: false
       t.references :tenant
       t.timestamps

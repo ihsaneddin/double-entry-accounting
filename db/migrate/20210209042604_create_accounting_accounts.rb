@@ -3,6 +3,7 @@ class CreateAccountingAccounts < ActiveRecord::Migration[6.0]
     create_table :accounting_accounts do |t|
       t.string :name
       t.string :type
+      t.string :code, unique: true, null: false
       t.boolean :contra, default: false
       t.references :tenant, polymorphic: true
       t.timestamps

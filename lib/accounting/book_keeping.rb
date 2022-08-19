@@ -6,14 +6,10 @@ module Accounting
 
     module ClassMethods
 
-      def acts_as_accountable &block
-        raise "Need block!" unless block_given?
+      def acts_as_accountable
         unless include?(Helpers)
           include Helpers
         end
-        config = Accounting::BookKeepingConfig.build_config &block
-        self.book_keeping_configs[self.name] ||= []
-        self.book_keeping_configs[self.name] << config
       end
 
     end
@@ -26,6 +22,15 @@ module Accounting
         self.book_keeping_configs = {}
         insert_entry
       end
+
+      def accounting_entry &block
+        raise "Need block!" unless block_given?
+        config = Accounting::BookKeepingConfig.build_config &block
+        self.book_keeping_configs[self.name] ||= []
+        self.book_keeping_configs[self.name] << config
+      end
+
+      protected
 
       def insert_entries when
         current_book_keeping_configs.each do |cfg|

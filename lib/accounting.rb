@@ -30,3 +30,6 @@ module Accounting
   end
 
 end
+
+
+require 'accounting/railtie'

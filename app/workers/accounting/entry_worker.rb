@@ -1,7 +1,7 @@
 require 'json'
 
 module Accounting
-  class TransactionWorker
+  class EntryWorker
 
     include ::Sidekiq::Worker
     sidekiq_options :queue => ::Accounting.enable_asynchronous_balance_insertion_queue, :retry => 5, :backtrace => 20
@@ -11,7 +11,7 @@ module Accounting
     end
 
     def insertion attrs
-      Accounting::Transaction.create JSON.parse(attrs)
+      Accounting::Entry.create JSON.parse(attrs)
     end
 
   end

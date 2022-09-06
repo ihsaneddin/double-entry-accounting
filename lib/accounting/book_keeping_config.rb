@@ -1,29 +1,30 @@
 module Accounting
   class BookKeepingConfig
-    
+
     attr_accessor :options, :object
 
-    def self.build_config &block
+    def self.build_config(&block)
       config = Accounting::BookKeepingConfig.new({})
-      yield(config)
+      config.instance_exec(&block)
       config
     end
 
-    def initialize params= {}
+    def initialize(params= {})
       self.options = {
         tenant: nil,
-        description: "", 
-        date: nil, 
-        debits: [], 
-        credits: [], 
-        if: false, 
-        when: :after_save, 
-        async: ::Accounting.enable_asynchronous_balance_insertion, 
+        description: "",
+        date: nil,
+        entry: nil,
+        debits: [],
+        credits: [],
+        if: true,
+        when: :after_save,
+        async: ::Accounting.enable_asynchronous_balance_insertion,
         worker: Accounting::EntryWorker
       }
-      self.options.merge! params        
+      self.options.merge! params
     end
-    
+
     def get_option key
       if object
         opt = options.dig key
@@ -39,7 +40,7 @@ module Accounting
       end
     end
 
-    def set_option :key, val
+    def set_option key, val
       self.options[key] = val
     end
 
@@ -67,6 +68,14 @@ module Accounting
       end
     end
 
+    def entry val=nil, &block
+      if block_given?
+        set_option :entry, block
+      else
+        set_option :entry, val
+      end
+    end
+
     def entry_credits val=nil, &block
       if block_given?
         set_option :credits, block
@@ -83,7 +92,7 @@ module Accounting
       end
     end
 
-    def should_save_as_async? val=nil, &block
+    def entry_save_async? val=nil, &block
       if block_given?
         set_option :async, block
       else
@@ -114,9 +123,9 @@ module Accounting
         set_option :when, val
       end
     end
-    
-    def insert_entry! object, when
-      if get_option(:when).to.sym == when.to_sym
+
+    def insert_entry! object, callback
+      if get_option(:when).to.sym == callback.to_sym
         if get_option(:if)
           self.object = object
           entry = build_entry
@@ -178,11 +187,28 @@ module Accounting
       debits_obj
     end
 
-    def build_entry attrs = nil
-      attrs ||= { description: get_option(:description), date: get_option(:date), tenant: get_option(:tenant) }
-      entry = ::Accounting::Amounts::Entry.new attrs
-      build_debits.each {|dr| entry.debit_amounts << dr }
-      build_credits.each{|cr| entry.credit_amounts << cr }
+    def build_entry
+      entry = get_option(:entry)
+      if entry.nil?
+        attrs = { description: get_option(:description), date: get_option(:date), tenant: get_option(:tenant) }
+        entry = ::Accounting::Amounts::Entry.new attrs
+        build_debits.each {|dr| entry.debit_amounts << dr }
+        build_credits.each{|cr| entry.credit_amounts << cr }
+      else
+        if(entry.is_a?(Hash))
+          entry = ::Accounting::Entry.new entry
+        end
+        entry.description ||= get_option(:description)
+        entry.date ||= get_option(:date)
+        entry.tenant ||= get_option(:tenant)
+        if entry.debits.blank?
+          build_debits.each {|dr| entry.debit_amounts << dr }
+        end
+        if entry.credits.blank?
+          build_credits.each {|cr| entry.credit_amounts << cr }
+        end
+      end
+      entry
     end
 
   end

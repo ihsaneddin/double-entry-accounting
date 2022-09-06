@@ -1,0 +1,7 @@
+en:
+  accounting:
+    validation:
+      messages:
+        invalid_debit_and_credit_amounts: "The credit and debit amounts are not equal"
+        debit_is_required: "Entry must have at least one debit amount"
+        credit_is_required: "Entry must have at least one credit amount"

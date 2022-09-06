@@ -13,6 +13,8 @@ module Accounting
     accepts_nested_attributes_for :debit_amounts, allow_destroy: true
     alias_method :credits=, :credit_amounts_attributes=
     alias_method :debits=, :debit_amounts_attributes=
+    alias_method :credits, :credit_amounts
+    alias_method :debits, :debit_amounts
     alias_method :credits_attributes=, :credit_amounts_attributes=
     alias_method :debits_attributes=, :debit_amounts_attributes=
 
@@ -26,7 +28,7 @@ module Accounting
       super
     end
 
-    validates_presence_of :description
+    # validates_presence_of :description
     validate :has_credit_amounts?
     validate :has_debit_amounts?
     validate :amounts_cancel?
@@ -41,15 +43,18 @@ module Accounting
       end
 
       def has_credit_amounts?
-        errors[:base] << "Entry must have at least one credit amount" if self.credit_amounts.blank?
+        errors.add(:credits, :debit_is_required, message: I18n.t("accounting.validation.messages.credit_is_required")) if self.credit_amounts.blank?
       end
 
       def has_debit_amounts?
-        errors[:base] << "Entry must have at least one debit amount" if self.debit_amounts.blank?
+        errors.add(:debits, :debit_is_required, message: I18n.t("accounting.validation.messages.debit_is_required")) if self.debit_amounts.blank?
       end
 
       def amounts_cancel?
-        errors[:base] << "The credit and debit amounts are not equal" if credit_amounts.balance_for_new_record != debit_amounts.balance_for_new_record
+        if credit_amounts.balance_for_new_record != debit_amounts.balance_for_new_record
+          errors.add(:debits, :invalid_debit_and_credit_amounts, message: I18n.t("accounting.validation.messages.invalid_debit_and_credit_amounts"))
+          errors.add(:credits, :invalid_debit_and_credit_amounts, message: I18n.t("accounting.validation.messages.invalid_debit_and_credit_amounts"))
+        end
       end
 
   end

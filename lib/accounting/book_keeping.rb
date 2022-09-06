@@ -1,4 +1,4 @@
-require_relative "../book_keeping_config"
+require_relative "./book_keeping_config"
 
 module Accounting
   module BookKeeping
@@ -32,18 +32,18 @@ module Accounting
 
       protected
 
-      def insert_entries when
+      def insert_entries callback
         current_book_keeping_configs.each do |cfg|
-          cfg.insert_entry(self, when)
+          cfg.insert_entry(self, callback)
         end
       end
 
       module ClassMethods
         
         def insert_entries
-          [:after_create, :after_update, :after_destroy].each do |when|
-            send(when) do 
-              insert_entries(when)
+          [:after_create, :after_update, :after_destroy].each do |callback|
+            send(callback) do 
+              insert_entries(callback)
             end 
           end
         end

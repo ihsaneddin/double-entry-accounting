@@ -4,8 +4,8 @@ module Accounting
     class_attribute :normal_credit_balance
 
     has_many :amounts
-    has_many :credit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::CreditAmount'
-    has_many :debit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::DebitAmount'
+    has_many :credit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::Amounts::Credit', dependent: :destroy
+    has_many :debit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::Amounts::Debit', dependent: :destroy
     has_many :entries, through: :amounts, source: :entry, :class_name => 'Accounting::Entry'
     has_many :credit_entries, :through => :credit_amounts, :source => :entry, :class_name => 'Accounting::Entry'
     has_many :debit_entries, :through => :debit_amounts, :source => :entry, :class_name => 'Accounting::Entry'
@@ -20,12 +20,16 @@ module Accounting
     validates :name, presence: true
     validates :code, presence: true, uniqueness: { allow_blank: true }
 
-    before_validation do 
+    before_validation do
+      self.normal_credit_balance= self.class.normal_credit_balance
+    end
+
+    before_validation do
       if name.blank?
         self.name = self.code
       end
       if code.blank?
-        self.code = name + "#{Time.now.to_i}"
+        self.code = name.to_s + "#{Time.now.to_i}"
       end
     end
 

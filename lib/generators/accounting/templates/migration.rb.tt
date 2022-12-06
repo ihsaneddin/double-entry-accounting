@@ -7,6 +7,7 @@ class <%= migration_class_name %> < ActiveRecord::Migration<%= migration_version
       t.string :code, unique: true, null: false
       t.string :category
       t.boolean :contra, default: false
+      t.boolean :normal_credit_balance, default: true
       t.references :tenant
       t.timestamps
     end

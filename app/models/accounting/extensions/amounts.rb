@@ -2,7 +2,9 @@ module Accounting
   module Extensions
     module Amounts
 
-      def balance(from: nil, to: nil)
+      def balance(options = {from: nil, to: nil})
+        from = options[:from]
+        to = options[:to]
         if from && to
           from_date = from.kind_of?(Date) ? from : Date.parse(from)
           to_date = to.kind_of?(Date) ? to : Date.parse(to)

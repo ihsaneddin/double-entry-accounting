@@ -40,6 +40,10 @@ module Accounting
       end
     end
 
+    def get_when
+      options.dig :when
+    end
+
     def set_option key, val
       self.options[key] = val
     end
@@ -125,9 +129,9 @@ module Accounting
     end
 
     def insert_entry! object, callback
-      if get_option(:when).to.sym == callback.to_sym
+      if get_when.to_s == callback.to_s
+        self.object = object
         if get_option(:if)
-          self.object = object
           entry = build_entry
           worker = get_option(:worker)
           if get_option(:async) && worker
@@ -191,7 +195,7 @@ module Accounting
       entry = get_option(:entry)
       if entry.nil?
         attrs = { description: get_option(:description), date: get_option(:date), tenant: get_option(:tenant) }
-        entry = ::Accounting::Amounts::Entry.new attrs
+        entry = ::Accounting::Entry.new attrs
         build_debits.each {|dr| entry.debit_amounts << dr }
         build_credits.each{|cr| entry.credit_amounts << cr }
       else

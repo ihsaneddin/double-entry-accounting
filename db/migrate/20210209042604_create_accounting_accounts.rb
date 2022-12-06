@@ -5,6 +5,7 @@ class CreateAccountingAccounts < ActiveRecord::Migration[6.0]
       t.string :type
       t.string :code, unique: true, null: false
       t.boolean :contra, default: false
+      t.boolean :normal_credit_balance, default: true
       t.references :tenant, polymorphic: true
       t.timestamps
     end

@@ -20,38 +20,38 @@ module Accounting
       included do
         class_attribute :book_keeping_configs
         self.book_keeping_configs = {}
-        insert_entry
-      end
-
-      def accounting_entry &block
-        raise "Need block!" unless block_given?
-        config = Accounting::BookKeepingConfig.build_config &block
-        self.book_keeping_configs[self.name] ||= []
-        self.book_keeping_configs[self.name] << config
+        insert_entries
       end
 
       protected
 
       def insert_entries callback
-        current_book_keeping_configs.each do |cfg|
-          cfg.insert_entry(self, callback)
+        self.class.current_book_keeping_configs.each do |cfg|
+          cfg.insert_entry!(self, callback)
         end
       end
 
       module ClassMethods
-        
+
+        def accounting_entry &block
+          raise "Need block!" unless block_given?
+          config = Accounting::BookKeepingConfig.build_config &block
+          self.book_keeping_configs[self.name] ||= []
+          self.book_keeping_configs[self.name] << config
+        end
+
         def insert_entries
           [:after_create, :after_update, :after_destroy].each do |callback|
-            send(callback) do 
+            send(callback) do
               insert_entries(callback)
-            end 
+            end
           end
         end
 
         def current_book_keeping_configs
           self.book_keeping_configs[self.name] || []
         end
-      
+
       end
 
     end

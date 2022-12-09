@@ -21,10 +21,6 @@ module Accounting
     validates :code, presence: true, uniqueness: { allow_blank: true }
 
     before_validation do
-      self.normal_credit_balance= self.class.normal_credit_balance
-    end
-
-    before_validation do
       if name.blank?
         self.name = self.code
       end

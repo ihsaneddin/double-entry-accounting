@@ -2,10 +2,10 @@ module Accounting
   module Accounts
     class Liability < ::Accounting::Account
 
-      self.normal_credit_balance = true
+      # self.normal_credit_balance = true
 
       before_validation do
-        self.normal_credit_balance= self.class.normal_credit_balance
+        self.normal_credit_balance= true#self.class.normal_credit_balance
       end
 
       def balance(options={})

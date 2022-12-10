@@ -1,7 +1,7 @@
 module Accounting
   class Account < ApplicationRecord
 
-    class_attribute :normal_credit_balance
+    # class_attribute :normal_credit_balance
 
     has_many :amounts
     has_many :credit_amounts, :extend => Extensions::Amounts, :class_name => 'Accounting::Amounts::Credit', dependent: :destroy
@@ -66,6 +66,7 @@ module Accounting
         accounts_balance = BigDecimal('0')
         accounts = self.all
         accounts.each do |account|
+          debugger
           if account.contra
             accounts_balance -= account.balance(options)
           else

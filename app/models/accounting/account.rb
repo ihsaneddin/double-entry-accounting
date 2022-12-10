@@ -66,7 +66,6 @@ module Accounting
         accounts_balance = BigDecimal('0')
         accounts = self.all
         accounts.each do |account|
-          debugger
           if account.contra
             accounts_balance -= account.balance(options)
           else
